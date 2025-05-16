@@ -1,44 +1,61 @@
 const express = require("express");
 const cors = require("cors");
-const app = express();
+const http = require("http");
+const { Server } = require("socket.io");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const path = require("path");
 
-// Swagger 문서 로드
+const app = express();
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: {
+    origin: "*", // 프론트 주소로 바꾸는 것도 가능
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
+  },
+});
+
+// 📄 Swagger 문서 로드
 const swaggerDocument = YAML.load(path.join(__dirname, "swagger", "swagger.yaml"));
 app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
-// CORS 설정
-app.use(cors({
-  origin: process.env.ALLOWED_ORIGIN || "*",
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
-
-// Body 파싱
+// ✅ CORS 설정
+app.use(cors());
 app.use(express.json());
 
-// 라우트 로드
+// 🔌 소켓 연결
+io.on("connection", (socket) => {
+  console.log("✅ 클라이언트 WebSocket 연결됨");
+
+  socket.on("disconnect", () => {
+    console.log("❌ 클라이언트 연결 해제됨");
+  });
+});
+
+// 📦 라우트 불러오기
 const menuRoutes = require("./routes/menuRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const salesRoutes = require("./routes/salesRoutes");
 const kitchenRoutes = require("./routes/kitchenRoutes");
 
+// 🔄 io 객체 app에 주입 (컨트롤러에서 사용 가능)
+app.set("io", io);
+
+// 📌 API 라우팅
 app.use("/api/kitchen", kitchenRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
 
-// 서버 실행
-// 서버 실행 로그 추가
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-
-});
-
-// 에러 핸들링 (선택)
+// ✅ 에러 핸들링
 app.use((err, req, res, next) => {
   console.error("서버 에러:", err.stack);
   res.status(500).json({ error: "서버 내부 오류 발생" });
+});
+
+// 🚀 서버 실행
+const PORT = process.env.PORT || 3000;
+server.listen(PORT, () => {
+  console.log(`🚀 서버 실행 중: http://localhost:${PORT}`);
+  console.log(`📚 Swagger 문서: http://localhost:${PORT}/api-docs`);
 });
