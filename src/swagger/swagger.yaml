@@ -3,7 +3,6 @@ info:
   title: Festival Backend API
   version: 1.0.0
   description: 음식점 주문/매출 관리 시스템의 백엔드 API 문서입니다.
-
 tags:
   - name: Menu
     description: 메뉴 관련 API
@@ -11,13 +10,11 @@ tags:
     description: 주문서 작성 및 저장 관련 API
   - name: Sales
     description: 판매 통계 및 매출 요약 API
-
 paths:
   /api/menu:
     get:
       summary: 메뉴 전체 조회
-      tags:
-        - Menu
+      tags: [Menu]
       responses:
         '200':
           description: 전체 메뉴 항목 반환
@@ -29,8 +26,7 @@ paths:
                   $ref: '#/components/schemas/MenuItem'
     post:
       summary: 메뉴 항목 추가
-      tags:
-        - Menu
+      tags: [Menu]
       requestBody:
         required: true
         content:
@@ -44,8 +40,7 @@ paths:
   /api/menu/{index}:
     put:
       summary: 메뉴 항목 수정
-      tags:
-        - Menu
+      tags: [Menu]
       parameters:
         - name: index
           in: path
@@ -63,8 +58,7 @@ paths:
           description: 메뉴 수정 성공
     delete:
       summary: 메뉴 항목 삭제
-      tags:
-        - Menu
+      tags: [Menu]
       parameters:
         - name: index
           in: path
@@ -78,8 +72,7 @@ paths:
   /api/orders:
     post:
       summary: 주문서 작성
-      tags:
-        - Orders
+      tags: [Orders]
       requestBody:
         required: true
         content:
@@ -105,11 +98,9 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Order'
-
     get:
       summary: 주문 전체 조회
-      tags:
-        - Orders
+      tags: [Orders]
       responses:
         '200':
           description: 주문 목록 반환
@@ -123,8 +114,7 @@ paths:
   /api/orders/complete:
     post:
       summary: 주문 저장
-      tags:
-        - Orders
+      tags: [Orders]
       requestBody:
         required: true
         content:
@@ -138,8 +128,7 @@ paths:
   /api/orders/{timestamp}:
     delete:
       summary: 주문 삭제
-      tags:
-        - Orders
+      tags: [Orders]
       parameters:
         - name: timestamp
           in: path
@@ -156,8 +145,7 @@ paths:
   /api/orders/{timestamp}/serve:
     patch:
       summary: 주문 전체 서빙 완료 처리
-      tags:
-        - Orders
+      tags: [Orders]
       parameters:
         - name: timestamp
           in: path
@@ -172,8 +160,7 @@ paths:
   /api/kitchen/{zone}:
     get:
       summary: 구역별 조리 항목 목록 조회
-      tags:
-        - Orders
+      tags: [Orders]
       parameters:
         - name: zone
           in: path
@@ -206,8 +193,7 @@ paths:
   /api/kitchen/{timestamp}/{index}/serve:
     patch:
       summary: 개별 음식 항목 서빙 완료 처리
-      tags:
-        - Orders
+      tags: [Orders]
       parameters:
         - name: timestamp
           in: path
@@ -227,8 +213,7 @@ paths:
   /api/sales/summary:
     get:
       summary: 판매 요약 통계 조회
-      tags:
-        - Sales
+      tags: [Sales]
       responses:
         '200':
           description: 품목별 판매 요약 반환

@@ -14,12 +14,27 @@ const loadOrders = () => {
 
 const saveOrders = (orders) => {
   fs.writeFileSync(orderFilePath, JSON.stringify(orders, null, 2));
-
-
 };
 
 const loadMenuItems = () => {
   return JSON.parse(fs.readFileSync(menuFilePath, "utf-8"));
+};
+
+// 구역별 주문 저장 함수
+const saveKitchenZoneOrder = (zone, items) => {
+  const filePath = path.join(__dirname, `../data/kitchen_${zone}.json`);
+  let existing = [];
+
+  if (fs.existsSync(filePath)) {
+    try {
+      existing = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+    } catch (err) {
+      console.error(`❌ kitchen_${zone}.json 파싱 오류:`, err);
+    }
+  }
+
+  const updated = [...existing, ...items];
+  fs.writeFileSync(filePath, JSON.stringify(updated, null, 2));
 };
 
 // [1] 주문 계산 (저장은 안 함)
@@ -72,7 +87,7 @@ exports.saveOrder = (req, res) => {
     orders.push(orderWithServeStatus);
     saveOrders(orders);
 
-    // ✅ 여기부터 zone별 소켓 전송 추가
+    // ✅ 구역별 소켓 및 파일 저장
     const zoneGroups = { A: [], B: [], C: [] };
 
     orderWithServeStatus.items.forEach((item, idx) => {
@@ -87,7 +102,8 @@ exports.saveOrder = (req, res) => {
 
     Object.entries(zoneGroups).forEach(([zone, items]) => {
       if (items.length > 0) {
-        req.io.emit(`order:${zone}`, items); // 소켓 브로드캐스트
+        saveKitchenZoneOrder(zone, items);
+        req.io.emit(`order:${zone}`, items);
       }
     });
 
@@ -97,7 +113,6 @@ exports.saveOrder = (req, res) => {
     res.status(500).json({ error: "주문 저장에 실패했습니다." });
   }
 };
-
 
 // [3] 주문 전체 조회 (시간순 정렬)
 exports.getOrders = (req, res) => {
@@ -122,17 +137,16 @@ exports.markOrderAsServed = (req, res) => {
   res.json({ success: true, message: "서빙 완료 처리되었습니다." });
 };
 
+// [5] 주문 삭제
 exports.deleteOrder = (req, res) => {
   const { timestamp } = req.params;
-  const orderFilePath = path.join(__dirname, "../data/orders.json");
-
-  const orders = JSON.parse(fs.readFileSync(orderFilePath, "utf-8"));
+  const orders = loadOrders();
   const updatedOrders = orders.filter((order) => order.timestamp !== timestamp);
 
   if (orders.length === updatedOrders.length) {
     return res.status(404).json({ error: "해당 주문이 존재하지 않습니다." });
   }
 
-  fs.writeFileSync(orderFilePath, JSON.stringify(updatedOrders, null, 2));
+  saveOrders(updatedOrders);
   res.json({ success: true, message: "주문이 삭제되었습니다." });
 };
