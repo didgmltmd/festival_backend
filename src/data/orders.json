@@ -1,0 +1,62 @@
+[
+  {
+    "tableNumber": 3,
+    "items": [
+      {
+        "name": "제육볶음",
+        "price": 8000,
+        "quantity": 2,
+        "zone": "A",
+        "total": 16000
+      }
+    ],
+    "totalPrice": 23000,
+    "timestamp": "2025-05-16T04:01:23.000Z",
+    "served": false
+  },
+  {
+    "tableNumber": 3,
+    "items": [
+      {
+        "name": "제육볶음",
+        "price": 8000,
+        "quantity": 2,
+        "zone": "A",
+        "total": 16000
+      }
+    ],
+    "totalPrice": 23000,
+    "timestamp": "2025-05-16T04:01:23.000Z",
+    "served": false
+  },
+  {
+    "tableNumber": 3,
+    "items": [
+      {
+        "name": "제육볶음",
+        "price": 8000,
+        "quantity": 2,
+        "zone": "A",
+        "total": 16000
+      }
+    ],
+    "totalPrice": 23000,
+    "timestamp": "2025-05-16T04:01:23.000Z",
+    "served": false
+  },
+  {
+    "tableNumber": 3,
+    "items": [
+      {
+        "name": "제육볶음",
+        "price": 8000,
+        "quantity": 2,
+        "zone": "A",
+        "total": 16000
+      }
+    ],
+    "totalPrice": 23000,
+    "timestamp": "2025-05-16T04:01:23.000Z",
+    "served": false
+  }
+]
