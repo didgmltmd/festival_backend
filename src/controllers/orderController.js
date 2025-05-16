@@ -14,6 +14,8 @@ const loadOrders = () => {
 
 const saveOrders = (orders) => {
   fs.writeFileSync(orderFilePath, JSON.stringify(orders, null, 2));
+
+
 };
 
 const loadMenuItems = () => {
@@ -57,7 +59,7 @@ exports.createOrder = (req, res) => {
 };
 
 // [2] 주문 저장 + served: false
-exports.saveOrder = (req, res) => {
+eexports.saveOrder = (req, res) => {
   const newOrder = req.body;
 
   try {
@@ -70,12 +72,32 @@ exports.saveOrder = (req, res) => {
     orders.push(orderWithServeStatus);
     saveOrders(orders);
 
+    // ✅ 여기부터 zone별 소켓 전송 추가
+    const zoneGroups = { A: [], B: [], C: [] };
+
+    orderWithServeStatus.items.forEach((item, idx) => {
+      zoneGroups[item.zone]?.push({
+        timestamp: orderWithServeStatus.timestamp,
+        itemIndex: idx,
+        tableNumber: orderWithServeStatus.tableNumber,
+        name: item.name,
+        quantity: item.quantity,
+      });
+    });
+
+    Object.entries(zoneGroups).forEach(([zone, items]) => {
+      if (items.length > 0) {
+        req.io.emit(`order:${zone}`, items); // 소켓 브로드캐스트
+      }
+    });
+
     res.json({ success: true, message: "주문이 저장되었습니다." });
   } catch (err) {
     console.error("주문 저장 오류:", err);
     res.status(500).json({ error: "주문 저장에 실패했습니다." });
   }
 };
+
 
 // [3] 주문 전체 조회 (시간순 정렬)
 exports.getOrders = (req, res) => {
