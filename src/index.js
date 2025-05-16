@@ -31,6 +31,14 @@ app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
 
 // 서버 실행
+// 서버 실행 로그 추가
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
+
+});
+
+// 에러 핸들링 (선택)
+app.use((err, req, res, next) => {
+  console.error("서버 에러:", err.stack);
+  res.status(500).json({ error: "서버 내부 오류 발생" });
 });

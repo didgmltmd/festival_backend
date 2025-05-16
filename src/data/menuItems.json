@@ -1,11 +1,11 @@
 [
-  { "name": "제육볶음", "price": 8000, "zone": "A" },
-  { "name": "김치찌개", "price": 7000, "zone": "A" },
-  { "name": "된장찌개", "price": 7000, "zone": "A" },
-  { "name": "돈까스", "price": 8500, "zone": "B" },
-  { "name": "치킨까스", "price": 9000, "zone": "B" },
-  { "name": "오므라이스", "price": 7500, "zone": "B" },
-  { "name": "비빔냉면", "price": 7000, "zone": "C" },
-  { "name": "물냉면", "price": 7000, "zone": "C" },
-  { "name": "우동", "price": 6000, "zone": "C" }
+  { "name": "제육볶음", "price": 8000, "zone": "A", "index": 0 },
+  { "name": "김치찌개", "price": 7000, "zone": "A", "index": 1 },
+  { "name": "된장찌개", "price": 7000, "zone": "A", "index": 2 },
+  { "name": "돈까스", "price": 8500, "zone": "B", "index": 3 },
+  { "name": "치킨까스", "price": 9000, "zone": "B", "index": 4 },
+  { "name": "오므라이스", "price": 7500, "zone": "B", "index": 5 },
+  { "name": "비빔냉면", "price": 7000, "zone": "C", "index": 6 },
+  { "name": "물냉면", "price": 7000, "zone": "C", "index": 7 },
+  { "name": "우동", "price": 6000, "zone": "C", "index": 8 }
 ]

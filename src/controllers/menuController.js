@@ -1,12 +1,13 @@
-const fs = require("fs");
+onst fs = require("fs");
 const path = require("path");
 const menuFilePath = path.join(__dirname, "../data/menuItems.json");
 
-// 전체 메뉴 불러오기
+// 전체 메뉴 불러오기 (index 포함)
 exports.getMenuItems = (req, res) => {
   try {
     const menuItems = JSON.parse(fs.readFileSync(menuFilePath, "utf-8"));
-    res.json(menuItems);
+    const itemsWithIndex = menuItems.map((item, index) => ({ ...item, index }));
+    res.json(itemsWithIndex);
   } catch (err) {
     console.error("메뉴 불러오기 오류:", err);
     res.status(500).json({ error: "메뉴 데이터를 불러오지 못했습니다." });
