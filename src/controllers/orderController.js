@@ -59,7 +59,7 @@ exports.createOrder = (req, res) => {
 };
 
 // [2] 주문 저장 + served: false
-eexports.saveOrder = (req, res) => {
+exports.saveOrder = (req, res) => {
   const newOrder = req.body;
 
   try {
