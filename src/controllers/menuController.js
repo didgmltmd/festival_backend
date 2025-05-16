@@ -1,4 +1,4 @@
-onst fs = require("fs");
+const fs = require("fs");
 const path = require("path");
 const menuFilePath = path.join(__dirname, "../data/menuItems.json");
 
