@@ -190,6 +190,39 @@ paths:
                     quantity:
                       type: integer
 
+  /api/kitchen/{zone}/history:
+    get:
+      summary: 구역별 전체 주문 내역 조회
+      tags: [Orders]
+      parameters:
+        - name: zone
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [A, B, C]
+      responses:
+        '200':
+          description: 해당 구역의 전체 주문 내역 반환
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    timestamp:
+                      type: string
+                      format: date-time
+                    itemIndex:
+                      type: integer
+                    tableNumber:
+                      type: integer
+                    name:
+                      type: string
+                    quantity:
+                      type: integer
+
   /api/kitchen/{timestamp}/{index}/serve:
     patch:
       summary: 개별 음식 항목 서빙 완료 처리
