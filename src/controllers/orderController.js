@@ -149,7 +149,7 @@ exports.deleteOrder = (req, res) => {
   saveOrders(updatedOrders);
 
   const io = req.app.get("io");
-  const itemIndexes = targetOrder.items.map((item) => item.index);
+  const itemIndexes = targetOrder.items.map((_, idx) => idx); // ✅ 배열 인덱스를 명시적으로 사용
 
   io.emit("orderDeleted", { timestamp, itemIndexes });
 
