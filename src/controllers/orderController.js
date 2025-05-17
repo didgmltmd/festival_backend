@@ -87,7 +87,7 @@ exports.saveOrder = (req, res) => {
     orders.push(orderWithServeStatus);
     saveOrders(orders);
 
-    // ✅ 구역별 소켓 및 파일 저장
+    // 구역별 소켓 및 파일 저장
     const zoneGroups = { A: [], B: [], C: [] };
 
     orderWithServeStatus.items.forEach((item, idx) => {
