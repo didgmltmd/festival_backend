@@ -10,10 +10,13 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*", // 프론트 주소로 바꾸는 것도 가능
+    origin: "*", 
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE"],
   },
 });
+
+// io 객체를 app에 등록
+app.set("io", io);
 
 // Swagger 문서 로드
 const swaggerDocument = YAML.load(path.join(__dirname, "swagger", "swagger.yaml"));
@@ -32,7 +35,6 @@ io.on("connection", (socket) => {
   });
 });
 
-// 🔄 io 객체를 모든 요청에 주입
 app.use((req, res, next) => {
   req.io = io;
   next();
