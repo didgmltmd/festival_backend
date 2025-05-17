@@ -20,7 +20,6 @@ const loadMenuItems = () => {
   return JSON.parse(fs.readFileSync(menuFilePath, "utf-8"));
 };
 
-// 구역별 주문 저장 함수
 const saveKitchenZoneOrder = (zone, items) => {
   const filePath = path.join(__dirname, `../data/kitchen_${zone}.json`);
   let existing = [];
@@ -87,7 +86,6 @@ exports.saveOrder = (req, res) => {
     orders.push(orderWithServeStatus);
     saveOrders(orders);
 
-    // 구역별 소켓 및 파일 저장
     const zoneGroups = { A: [], B: [], C: [] };
 
     orderWithServeStatus.items.forEach((item, idx) => {
@@ -137,16 +135,23 @@ exports.markOrderAsServed = (req, res) => {
   res.json({ success: true, message: "서빙 완료 처리되었습니다." });
 };
 
-// [5] 주문 삭제
+// [5] 주문 삭제 + socket 알림
 exports.deleteOrder = (req, res) => {
   const { timestamp } = req.params;
   const orders = loadOrders();
-  const updatedOrders = orders.filter((order) => order.timestamp !== timestamp);
 
-  if (orders.length === updatedOrders.length) {
+  const targetOrder = orders.find((order) => order.timestamp === timestamp);
+  if (!targetOrder) {
     return res.status(404).json({ error: "해당 주문이 존재하지 않습니다." });
   }
 
+  const updatedOrders = orders.filter((order) => order.timestamp !== timestamp);
   saveOrders(updatedOrders);
+
+  const io = req.app.get("io");
+  const itemIndexes = targetOrder.items.map((item) => item.index);
+
+  io.emit("orderDeleted", { timestamp, itemIndexes });
+
   res.json({ success: true, message: "주문이 삭제되었습니다." });
 };
