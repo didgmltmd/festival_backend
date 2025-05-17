@@ -1,12 +1,13 @@
 const express = require("express");
 const router = express.Router();
+
 const {
   createOrder,
   saveOrder,
   getOrders,
-  markOrderAsServed,
   deleteOrder,
-  markItemAsServed
+  markOrderAsServed,
+  markItemAsServed,
 } = require("../controllers/orderController");
 
 /**
@@ -29,11 +30,14 @@ router.get("/", getOrders);
 
 /**
  * @route PATCH /api/orders/:timestamp/serve
- * @desc 해당 주문을 서빙 완료 처리 (served: true)
+ * @desc 주문 단위로 서빙 완료 처리 (주문 전체 항목이 완료된 경우만 served: true 처리됨)
  */
 router.patch("/:timestamp/serve", markOrderAsServed);
 
-
+/**
+ * @route PATCH /api/orders/:timestamp/:itemIndex/serve
+ * @desc 개별 항목 기준 서빙 완료 처리
+ */
 router.patch("/:timestamp/:itemIndex/serve", markItemAsServed);
 
 /**
@@ -41,7 +45,5 @@ router.patch("/:timestamp/:itemIndex/serve", markItemAsServed);
  * @desc 특정 주문 삭제 처리
  */
 router.delete("/:timestamp", deleteOrder);
-
-
 
 module.exports = router;

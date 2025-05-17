@@ -12,14 +12,17 @@ const loadOrders = () => {
   return JSON.parse(fs.readFileSync(orderFilePath, "utf-8"));
 };
 
+// 주문 내역 저장
 const saveOrders = (orders) => {
   fs.writeFileSync(orderFilePath, JSON.stringify(orders, null, 2));
 };
 
+// 메뉴 불러오기
 const loadMenuItems = () => {
   return JSON.parse(fs.readFileSync(menuFilePath, "utf-8"));
 };
 
+// 구역별 주방 파일 저장
 const saveKitchenZoneOrder = (zone, items) => {
   const filePath = path.join(__dirname, `../data/kitchen_${zone}.json`);
   let existing = [];
@@ -36,7 +39,7 @@ const saveKitchenZoneOrder = (zone, items) => {
   fs.writeFileSync(filePath, JSON.stringify(updated, null, 2));
 };
 
-// [1] 주문 계산 (저장은 안 함)
+// [1] 주문 계산 (저장 X)
 exports.createOrder = (req, res) => {
   const { tableNumber, items } = req.body;
   const menu = loadMenuItems();
@@ -72,7 +75,7 @@ exports.createOrder = (req, res) => {
   res.json(orderData);
 };
 
-// [2] 주문 저장 + served: false
+// [2] 주문 저장
 exports.saveOrder = (req, res) => {
   const newOrder = req.body;
 
@@ -112,14 +115,14 @@ exports.saveOrder = (req, res) => {
   }
 };
 
-// [3] 주문 전체 조회 (시간순 정렬)
+// [3] 주문 전체 조회
 exports.getOrders = (req, res) => {
   const orders = loadOrders();
   const sorted = orders.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
   res.json(sorted);
 };
 
-// [4] 서빙 완료 처리
+// [4] 항목별 서빙 완료 처리
 exports.markOrderAsServed = (req, res) => {
   const { timestamp, itemIndex } = req.params;
   const orders = loadOrders();
@@ -129,13 +132,13 @@ exports.markOrderAsServed = (req, res) => {
     return res.status(404).json({ error: "주문을 찾을 수 없습니다." });
   }
 
-  const index = parseInt(itemIndex); // 🔍 숫자 변환
+  const index = parseInt(itemIndex);
   if (!order.items[index]) {
     return res.status(404).json({ error: "해당 항목을 찾을 수 없습니다." });
   }
 
   order.items[index].served = true;
-  order.served = order.items.every((item) => item.served);
+  order.served = order.items.every((item) => item.served === true);
   saveOrders(orders);
 
   const io = req.app.get("io");
@@ -152,7 +155,7 @@ exports.markOrderAsServed = (req, res) => {
   res.json({ success: true, message: "서빙 완료 처리되었습니다." });
 };
 
-// [5] 주문 삭제 + socket 알림
+// [5] 주문 삭제 + 소켓 전파
 exports.deleteOrder = (req, res) => {
   const { timestamp } = req.params;
   const orders = loadOrders();
@@ -166,9 +169,11 @@ exports.deleteOrder = (req, res) => {
   saveOrders(updatedOrders);
 
   const io = req.app.get("io");
-  const itemIndexes = targetOrder.items.map((_, idx) => idx); // ✅ 배열 인덱스를 명시적으로 사용
+  const itemIndexes = targetOrder.items.map((_, idx) => idx);
 
   io.emit("orderDeleted", { timestamp, itemIndexes });
+
+  console.log("🗑️ emit: orderDeleted", { timestamp, itemIndexes });
 
   res.json({ success: true, message: "주문이 삭제되었습니다." });
 };
