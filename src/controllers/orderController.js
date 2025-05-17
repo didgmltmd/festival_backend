@@ -122,38 +122,31 @@ exports.getOrders = (req, res) => {
   res.json(sorted);
 };
 
-// [4] 항목별 서빙 완료 처리
-exports.markOrderAsServed = (req, res) => {
+// [추가] 개별 항목 서빙 완료 처리
+exports.markItemAsServed = (req, res) => {
   const { timestamp, itemIndex } = req.params;
   const orders = loadOrders();
 
   const order = orders.find((o) => o.timestamp === timestamp);
-  if (!order) {
-    return res.status(404).json({ error: "주문을 찾을 수 없습니다." });
-  }
+  if (!order) return res.status(404).json({ error: "주문을 찾을 수 없습니다." });
 
   const index = parseInt(itemIndex);
-  if (!order.items[index]) {
-    return res.status(404).json({ error: "해당 항목을 찾을 수 없습니다." });
-  }
+  if (!order.items[index]) return res.status(404).json({ error: "해당 항목이 존재하지 않습니다." });
 
   order.items[index].served = true;
-  order.served = order.items.every((item) => item.served === true);
+  order.served = order.items.every((item) => item.served);
   saveOrders(orders);
 
   const io = req.app.get("io");
-  const servedItem = order.items[index];
-
   io.emit("orderServed", {
-    zone: servedItem.zone,
+    zone: order.items[index].zone,
     timestamp,
     itemIndex: index,
   });
 
-  console.log("✅ emit: orderServed", { timestamp, itemIndex: index });
-
-  res.json({ success: true, message: "서빙 완료 처리되었습니다." });
+  return res.json({ success: true, message: "서빙 완료 처리됨" });
 };
+
 
 // [5] 주문 삭제 + 소켓 전파
 exports.deleteOrder = (req, res) => {
