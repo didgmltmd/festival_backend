@@ -6,6 +6,7 @@ const {
   getOrders,
   markOrderAsServed,
   deleteOrder, // ✅ 추가됨
+  markItemAsServed
 } = require("../controllers/orderController");
 
 /**
@@ -32,10 +33,15 @@ router.get("/", getOrders);
  */
 router.patch("/:timestamp/serve", markOrderAsServed);
 
+
+router.patch("/:timestamp/:itemIndex/serve", markItemAsServed);
+
 /**
  * @route DELETE /api/orders/:timestamp
  * @desc 특정 주문 삭제 처리
  */
 router.delete("/:timestamp", deleteOrder);
+
+
 
 module.exports = router;
