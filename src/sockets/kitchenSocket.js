@@ -12,14 +12,10 @@ function setupKitchenSocket(io) {
       }
     });
 
-    socket.on("orderDeleted", (timestamp) => {
-      console.log("주문 삭제 요청 수신됨:", timestamp);
-      
-      // A, B, C 모두에게 삭제 알림 전송
+    socket.on("orderDeleted", ({ timestamp, itemIndex }) => {
       for (const zone of ["A", "B", "C"]) {
         if (zoneSockets[zone]) {
-          zoneSockets[zone].emit("orderDeleted", timestamp);
-          console.log(`${zone} 구역에 삭제 전송됨: ${timestamp}`);
+          zoneSockets[zone].emit("orderDeleted", { timestamp, itemIndex });
         }
       }
     });
