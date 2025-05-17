@@ -129,32 +129,28 @@ exports.markOrderAsServed = (req, res) => {
     return res.status(404).json({ error: "주문을 찾을 수 없습니다." });
   }
 
-  if (!order.items[itemIndex]) {
+  const index = parseInt(itemIndex); // 🔍 숫자 변환
+  if (!order.items[index]) {
     return res.status(404).json({ error: "해당 항목을 찾을 수 없습니다." });
   }
 
-  order.items[itemIndex].served = true;
-
-  // 전체 서빙 완료됐는지 확인해서 order.served도 같이 업데이트
-  const allServed = order.items.every((item) => item.served);
-  order.served = allServed;
-
+  order.items[index].served = true;
+  order.served = order.items.every((item) => item.served);
   saveOrders(orders);
 
-  // 🔥 소켓으로 전체에 서빙 완료된 항목 전파
   const io = req.app.get("io");
-  const servedItem = order.items[itemIndex];
-  const zone = servedItem.zone;
+  const servedItem = order.items[index];
 
   io.emit("orderServed", {
-    zone,
+    zone: servedItem.zone,
     timestamp,
-    itemIndex,
+    itemIndex: index,
   });
+
+  console.log("✅ emit: orderServed", { timestamp, itemIndex: index });
 
   res.json({ success: true, message: "서빙 완료 처리되었습니다." });
 };
-
 
 // [5] 주문 삭제 + socket 알림
 exports.deleteOrder = (req, res) => {
