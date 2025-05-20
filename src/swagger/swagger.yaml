@@ -125,6 +125,83 @@ paths:
         '200':
           description: 주문 저장 성공
 
+    /api/drunk-orders:
+    post:
+      summary: 외부 손님 주문 저장
+      tags: [Orders]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                tableNumber:
+                  type: integer
+                items:
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      name:
+                        type: string
+                      quantity:
+                        type: integer
+                      zone:
+                        type: string
+                timestamp:
+                  type: string
+                  format: date-time
+                drinking:
+                  type: integer
+      responses:
+        '201':
+          description: 외부 손님 주문 저장 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  order:
+                    $ref: '#/components/schemas/DrunkOrder'
+
+  /api/drunk-orders/{id}/drinking-delivered:
+    patch:
+      summary: 술 전달 여부 수정
+      tags: [Orders]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                delivered:
+                  type: boolean
+      responses:
+        '200':
+          description: 전달 여부 수정 성공
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  updatedOrder:
+                    $ref: '#/components/schemas/DrunkOrder'
+        '404':
+          description: 주문이 존재하지 않음
+
+
   /api/orders/{timestamp}:
     delete:
       summary: 주문 삭제
@@ -268,6 +345,33 @@ components:
           type: integer
         zone:
           type: string
+
+        DrunkOrder:
+      type: object
+      properties:
+        id:
+          type: integer
+        tableNumber:
+          type: integer
+        timestamp:
+          type: string
+          format: date-time
+        items:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              quantity:
+                type: integer
+              zone:
+                type: string
+        drinking:
+          type: integer
+        drinkingDelivered:
+          type: boolean
+
 
     Item:
       type: object

@@ -45,12 +45,14 @@ const menuRoutes = require("./routes/menuRoutes");
 const orderRoutes = require("./routes/orderRoutes");
 const salesRoutes = require("./routes/salesRoutes");
 const kitchenRoutes = require("./routes/kitchenRoutes");
+const drunkOrderRoutes = require("./routes/drunkOrderRoutes");
 
 // API 라우팅
 app.use("/api/kitchen", kitchenRoutes);
 app.use("/api/sales", salesRoutes);
 app.use("/api/menu", menuRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/drunk-orders", drunkOrderRoutes);
 
 // 에러 핸들링
 app.use((err, req, res, next) => {
