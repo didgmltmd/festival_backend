@@ -98,6 +98,8 @@ exports.saveOrder = (req, res) => {
       }
     });
 
+    console.log(newOrder);
+
     res.json({ success: true, message: "주문이 저장되었습니다." });
   } catch (err) {
     console.error("주문 저장 오류:", err);
