@@ -55,3 +55,15 @@ exports.updateDrinkingDelivered = (req, res) => {
     res.status(500).json({ error: "상태 수정 실패" });
   }
 };
+
+
+// GET /api/drunk-orders
+exports.getDrunkOrders = (req, res) => {
+  try {
+    const orders = loadOrders();
+    res.status(200).json(orders);
+  } catch (err) {
+    console.error("술 주문 조회 실패:", err);
+    res.status(500).json({ error: "술 주문 조회 실패" });
+  }
+};
