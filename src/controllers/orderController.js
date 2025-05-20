@@ -98,7 +98,17 @@ exports.saveOrder = (req, res) => {
       }
     });
 
-    console.log(newOrder);
+    
+    if (newOrder.outsider) {
+      console.log(newOrder);
+      req.io.emit("order:drunk", {
+        timestamp: newOrder.timestamp,
+        tableNumber: newOrder.tableNumber,
+        items: newOrder.items,
+        outsider: true,
+      });
+    }
+
 
     res.json({ success: true, message: "주문이 저장되었습니다." });
   } catch (err) {
