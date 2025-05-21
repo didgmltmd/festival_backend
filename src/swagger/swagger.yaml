@@ -178,6 +178,21 @@ paths:
                     type: boolean
                   order:
                     $ref: '#/components/schemas/DrunkOrder'
+    delete:
+    summary: 외부 손님 술 주문 전체 삭제
+    tags: [Orders]
+    responses:
+      '200':
+        description: 모든 외부 손님 주문이 삭제되었습니다.
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                success:
+                  type: boolean
+                message:
+                  type: string
 
   /api/drunk-orders/{id}/drinking-delivered:
     patch:

@@ -56,7 +56,6 @@ exports.updateDrinkingDelivered = (req, res) => {
   }
 };
 
-
 // GET /api/drunk-orders
 exports.getDrunkOrders = (req, res) => {
   try {
@@ -65,5 +64,16 @@ exports.getDrunkOrders = (req, res) => {
   } catch (err) {
     console.error("술 주문 조회 실패:", err);
     res.status(500).json({ error: "술 주문 조회 실패" });
+  }
+};
+
+// DELETE /api/drunk-orders
+exports.deleteAllDrunkOrders = (req, res) => {
+  try {
+    saveOrders([]); // 빈 배열로 저장
+    res.status(200).json({ success: true, message: "모든 주문이 삭제되었습니다." });
+  } catch (err) {
+    console.error("전체 주문 삭제 실패:", err);
+    res.status(500).json({ error: "전체 주문 삭제 실패" });
   }
 };
