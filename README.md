@@ -7,6 +7,8 @@
 - Frontend: https://github.com/didgmltmd/festival_front
 - Backend-swagger: https://festival-backend-wwht.onrender.com/api-docs/
 
+내 역할: 백엔드 개발 (100%)
+
 ---
 
 ## Features
