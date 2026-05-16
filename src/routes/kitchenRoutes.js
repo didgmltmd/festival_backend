@@ -1,8 +1,9 @@
 const express = require("express");
 const router = express.Router();
-const { getZoneOrders, serveItem } = require("../controllers/kitchenController");
+const { getZoneOrders, completeCooking } = require("../controllers/kitchenController");
 
 router.get("/:zone", getZoneOrders);
-router.patch("/:timestamp/:itemIndex/serve", serveItem); // ✅ 수정된 부분
+router.patch("/:timestamp/:itemIndex/cook", completeCooking);
+router.patch("/:timestamp/:itemIndex/serve", completeCooking);
 
 module.exports = router;

@@ -1,69 +1,78 @@
-const fs = require("fs");
-const path = require("path");
+const { all, get, run } = require("../db");
 
-const orderFilePath = path.join(__dirname, "../data/orders.json");
+const kitchenZones = ["A", "B", "C"];
+const now = () => new Date().toISOString();
 
-// [1] A/B/C 구역별 미서빙 항목 조회
+const isZone = (zone) => kitchenZones.includes(zone);
+
+const statusWhere = (status) => {
+  if (status === "cooking") return ["order_items.status = 'cooking'", []];
+  if (status === "ready") return ["order_items.status = 'ready'", []];
+  if (status === "served" || status === "completed") return ["order_items.status = 'served'", []];
+  return ["order_items.status IN ('cooking', 'ready')", []];
+};
+
 exports.getZoneOrders = (req, res) => {
   const zone = req.params.zone.toUpperCase();
-  if (!["A", "B", "C"].includes(zone)) {
-    return res.status(400).json({ error: "존재하지 않는 zone입니다." });
+  const status = req.query.status || "active";
+
+  if (!isZone(zone)) {
+    return res.status(400).json({ error: "존재하지 않는 조리 구역입니다." });
   }
 
-  if (!fs.existsSync(orderFilePath)) {
-    return res.status(404).json({ error: "주문 내역이 없습니다." });
-  }
-
-  const orders = JSON.parse(fs.readFileSync(orderFilePath, "utf-8"));
-  const result = [];
-
-  for (const order of orders) {
-    if (order.served) continue;
-
-    order.items.forEach((item, index) => {
-      if (item.zone === zone && item.served === false) {
-        result.push({
-          timestamp: order.timestamp,
-          itemIndex: index,
-          tableNumber: order.tableNumber,
-          name: item.name,
-          quantity: item.quantity,
-        });
-      }
-    });
-  }
+  const [where] = statusWhere(status);
+  const result = all(
+    `
+      SELECT
+        order_timestamp AS timestamp,
+        item_index AS itemIndex,
+        table_number AS tableNumber,
+        name,
+        quantity,
+        order_items.status AS status,
+        ordered_at AS orderedAt,
+        cooked_at AS cookedAt,
+        served_at AS servedAt
+      FROM order_items
+      JOIN orders ON orders.timestamp = order_items.order_timestamp
+      WHERE zone = ? AND ${where}
+      ORDER BY datetime(order_timestamp) ASC, item_index ASC
+    `,
+    [zone]
+  );
 
   res.json(result);
 };
 
-// [2] 항목별 서빙 완료 처리 + socket emit
-exports.serveItem = (req, res) => {
+exports.completeCooking = (req, res) => {
   const { timestamp, itemIndex } = req.params;
-  const index = parseInt(itemIndex);
-  const orders = JSON.parse(fs.readFileSync(orderFilePath, "utf-8"));
+  const index = Number(itemIndex);
+  const item = get("SELECT * FROM order_items WHERE order_timestamp = ? AND item_index = ?", [timestamp, index]);
 
-  const order = orders.find((o) => o.timestamp === timestamp);
-  if (!order) return res.status(404).json({ error: "주문을 찾을 수 없습니다." });
+  if (!item) return res.status(404).json({ error: "주문 항목을 찾을 수 없습니다." });
+  if (!isZone(item.zone)) return res.status(400).json({ error: "조리 구역 항목이 아닙니다." });
 
-  if (!order.items[index]) return res.status(404).json({ error: "해당 항목이 없습니다." });
+  const cookedAt = now();
+  run(
+    "UPDATE order_items SET status = 'ready', cooked_at = ? WHERE order_timestamp = ? AND item_index = ? AND status = 'cooking'",
+    [cookedAt, timestamp, index]
+  );
 
-  order.items[index].served = true;
-  if (order.items.every((item) => item.served)) {
-    order.served = true;
-  }
-
-  fs.writeFileSync(orderFilePath, JSON.stringify(orders, null, 2));
+  const payload = {
+    zone: item.zone,
+    timestamp,
+    itemIndex: index,
+    tableNumber: get("SELECT table_number FROM orders WHERE timestamp = ?", [timestamp]).table_number,
+    name: item.name,
+    quantity: item.quantity,
+    status: "ready",
+    orderedAt: item.ordered_at,
+    cookedAt,
+  };
 
   const io = req.app.get("io");
-  const zone = order.items[index].zone;
+  io.emit("orderCooked", payload);
+  io.emit("orderUpdated", { timestamp });
 
-  io.emit("orderServed", {
-    zone,
-    timestamp,
-    itemIndexes: [index], // ✅ 프론트에서 배열로 받도록 명시
-  });
-
-  console.log("✅ emit: orderServed", { timestamp, itemIndexes: [index] });
-
-  res.json({ success: true });
+  res.json({ success: true, item: payload });
 };

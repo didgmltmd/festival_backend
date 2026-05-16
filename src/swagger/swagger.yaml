@@ -2,63 +2,48 @@ openapi: 3.0.0
 info:
   title: Festival Backend API
   version: 1.0.0
-  description: 음식점 주문/매출 관리 시스템의 백엔드 API 문서입니다
+  description: Festival order, kitchen, menu, and sales API.
 tags:
   - name: Menu
-    description: 메뉴 관련 API
   - name: Orders
-    description: 주문서 작성 및 저장 관련 API
+  - name: Kitchen
   - name: Sales
-    description: 판매 통계 및 매출 요약 API
 paths:
   /api/menu:
     get:
-      summary: 메뉴 전체 조회
       tags: [Menu]
+      summary: List menu items
       responses:
-        '200':
-          description: 전체 메뉴 항목 반한
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/MenuItem'
+        "200":
+          description: Menu items
     post:
-      summary: 메뉴 항목 추가
       tags: [Menu]
+      summary: Add a menu item
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/MenuItem'
+              $ref: "#/components/schemas/MenuItem"
       responses:
-        '200':
-          description: 메뉴 추가 성공
-
+        "201":
+          description: Created
   /api/menu/{index}:
     put:
-      summary: 메뉴 항목 수정
       tags: [Menu]
+      summary: Update a menu item by list index
       parameters:
         - name: index
           in: path
           required: true
           schema:
             type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MenuItem'
       responses:
-        '200':
-          description: 메뉴 수정 성공
+        "200":
+          description: Updated
     delete:
-      summary: 메뉴 항목 삭제
       tags: [Menu]
+      summary: Delete a menu item by list index
       parameters:
         - name: index
           in: path
@@ -66,305 +51,128 @@ paths:
           schema:
             type: integer
       responses:
-        '200':
-          description: 메뉴 삭제 성공
-
+        "200":
+          description: Deleted
   /api/orders:
-    post:
-      summary: 주문서 작성
-      tags: [Orders]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                tableNumber:
-                  type: integer
-                items:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                      quantity:
-                        type: integer
-      responses:
-        '200':
-          description: 주문서 계산 반환
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Order'
     get:
-      summary: 주문 전체 조회
       tags: [Orders]
+      summary: List orders
       responses:
-        '200':
-          description: 주문 목록 반환
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Order'
-
+        "200":
+          description: Orders
+    post:
+      tags: [Orders]
+      summary: Calculate an order from menu data
+      responses:
+        "200":
+          description: Calculated order
   /api/orders/complete:
     post:
-      summary: 주문 저장
       tags: [Orders]
+      summary: Save an order and emit kitchen events
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Order'
+              $ref: "#/components/schemas/Order"
       responses:
-        '200':
-          description: 주문 저장 성공
-
-    /api/drunk-orders:
-    get:
-      summary: 외부 손님 술 주문 전체 조회
-      tags: [Orders]
-      responses:
-        '200':
-          description: 외부 손님 술 주문 목록 반환
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/DrunkOrder'
-    post:
-      summary: 외부 손님 주문 저장
-      tags: [Orders]
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                tableNumber:
-                  type: integer
-                items:
-                  type: array
-                  items:
-                    type: object
-                    properties:
-                      name:
-                        type: string
-                      quantity:
-                        type: integer
-                      zone:
-                        type: string
-                timestamp:
-                  type: string
-                  format: date-time
-                drinking:
-                  type: integer
-      responses:
-        '201':
-          description: 외부 손님 주문 저장 성공
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  order:
-                    $ref: '#/components/schemas/DrunkOrder'
-
-    delete:
-      summary: 외부 손님 술 주문 전체 삭제
-      tags: [Orders]
-      responses:
-        '200':
-          description: 모든 외부 손님 주문이 삭제되었습니다.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  message:
-                    type: string
-
-  /api/drunk-orders/{id}/drinking-delivered:
-    patch:
-      summary: 술 전달 여부 수정
-      tags: [Orders]
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                delivered:
-                  type: boolean
-      responses:
-        '200':
-          description: 전달 여부 수정 성공
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  success:
-                    type: boolean
-                  updatedOrder:
-                    $ref: '#/components/schemas/DrunkOrder'
-        '404':
-          description: 주문이 존재하지 않음
-
-  /api/orders/{timestamp}:
-    delete:
-      summary: 주문 삭제
-      tags: [Orders]
-      parameters:
-        - name: timestamp
-          in: path
-          required: true
-          schema:
-            type: string
-            format: date-time
-      responses:
-        '200':
-          description: 주문 삭제 성공
-        '404':
-          description: 주문이 존재하지 않음
-
+        "201":
+          description: Saved
   /api/orders/{timestamp}/serve:
     patch:
-      summary: 주문 전체 서빙 완료 처리
       tags: [Orders]
+      summary: Mark an entire order as served
       parameters:
         - name: timestamp
           in: path
           required: true
           schema:
             type: string
-            format: date-time
       responses:
-        '200':
-          description: 주문 서빙 완료 처리됨
-
-  /api/kitchen/{zone}:
-    get:
-      summary: 구역별 조리 항목 목록 조회
-      tags: [Orders]
-      parameters:
-        - name: zone
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [A, B, C]
-      responses:
-        '200':
-          description: 해당 구역의 미서빙 항목 반환
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    timestamp:
-                      type: string
-                      format: date-time
-                    itemIndex:
-                      type: integer
-                    tableNumber:
-                      type: integer
-                    name:
-                      type: string
-                    quantity:
-                      type: integer
-
-  /api/kitchen/{zone}/history:
-    get:
-      summary: 구역별 전체 주문 내역 조회
-      tags: [Orders]
-      parameters:
-        - name: zone
-          in: path
-          required: true
-          schema:
-            type: string
-            enum: [A, B, C]
-      responses:
-        '200':
-          description: 해당 구역의 전체 주문 내역 반환
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    timestamp:
-                      type: string
-                      format: date-time
-                    itemIndex:
-                      type: integer
-                    tableNumber:
-                      type: integer
-                    name:
-                      type: string
-                    quantity:
-                      type: integer
-
-  /api/kitchen/{timestamp}/{index}/serve:
+        "200":
+          description: Served
+  /api/orders/{timestamp}/{itemIndex}/serve:
     patch:
-      summary: 개별 음식 항목 서빙 완료 처리
       tags: [Orders]
+      summary: Mark a single order item as served
       parameters:
         - name: timestamp
           in: path
           required: true
           schema:
             type: string
-            format: date-time
-        - name: index
+        - name: itemIndex
           in: path
           required: true
           schema:
             type: integer
       responses:
-        '200':
-          description: 항목 서빙 완료 처리됨
-
+        "200":
+          description: Served
+  /api/orders/{timestamp}:
+    delete:
+      tags: [Orders]
+      summary: Delete an order
+      parameters:
+        - name: timestamp
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Deleted
+  /api/kitchen/{zone}:
+    get:
+      tags: [Kitchen]
+      summary: List kitchen items by zone
+      parameters:
+        - name: zone
+          in: path
+          required: true
+          schema:
+            type: string
+            enum: [A, B, C]
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [active, completed]
+      responses:
+        "200":
+          description: Kitchen items
+  /api/kitchen/{timestamp}/{itemIndex}/serve:
+    patch:
+      tags: [Kitchen]
+      summary: Complete one kitchen item
+      parameters:
+        - name: timestamp
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: itemIndex
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Completed
   /api/sales/summary:
     get:
-      summary: 판매 요약 통계 조회
       tags: [Sales]
+      summary: Sales summary by menu item
       responses:
-        '200':
-          description: 품목별 판매 요약 반환
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SalesSummaryItem'
-
+        "200":
+          description: Sales summary
 components:
   schemas:
     MenuItem:
       type: object
+      required: [name, price, zone]
       properties:
         name:
           type: string
@@ -372,34 +180,8 @@ components:
           type: integer
         zone:
           type: string
-
-    DrunkOrder:
-      type: object
-      properties:
-        id:
-          type: integer
-        tableNumber:
-          type: integer
-        timestamp:
-          type: string
-          format: date-time
-        items:
-          type: array
-          items:
-            type: object
-            properties:
-              name:
-                type: string
-              quantity:
-                type: integer
-              zone:
-                type: string
-        drinking:
-          type: integer
-        drinkingDelivered:
-          type: boolean
-
-    Item:
+          enum: [A, B, C]
+    OrderItem:
       type: object
       properties:
         name:
@@ -410,20 +192,20 @@ components:
           type: integer
         zone:
           type: string
+          enum: [A, B, C]
         total:
           type: integer
         served:
           type: boolean
-
     Order:
       type: object
       properties:
         tableNumber:
-          type: integer
+          type: string
         items:
           type: array
           items:
-            $ref: '#/components/schemas/Item'
+            $ref: "#/components/schemas/OrderItem"
         totalPrice:
           type: integer
         timestamp:
@@ -431,13 +213,3 @@ components:
           format: date-time
         served:
           type: boolean
-
-    SalesSummaryItem:
-      type: object
-      properties:
-        name:
-          type: string
-        totalSold:
-          type: integer
-        totalRevenue:
-          type: integer
