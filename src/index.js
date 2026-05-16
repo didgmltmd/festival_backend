@@ -9,7 +9,13 @@ require("./db");
 
 const app = express();
 const server = http.createServer(app);
-const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
+const allowedOrigin = process.env.ALLOWED_ORIGIN
+  ? process.env.ALLOWED_ORIGIN.split(",").map((origin) => origin.trim())
+  : [
+      "https://festival-front-b8ti.onrender.com",
+      "http://localhost:3001",
+      "http://localhost:5173",
+    ];
 
 const io = new Server(server, {
   cors: {
