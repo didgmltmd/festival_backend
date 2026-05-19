@@ -5,7 +5,7 @@ const { Server } = require("socket.io");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const path = require("path");
-require("./db");
+const { initDb } = require("./db");
 
 const app = express();
 const server = http.createServer(app);
@@ -55,7 +55,15 @@ app.use((err, req, res, next) => {
 });
 
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`Server running: http://localhost:${PORT}`);
-  console.log(`Swagger docs: http://localhost:${PORT}/api-docs`);
-});
+
+initDb()
+  .then(() => {
+    server.listen(PORT, () => {
+      console.log(`Server running: http://localhost:${PORT}`);
+      console.log(`Swagger docs: http://localhost:${PORT}/api-docs`);
+    });
+  })
+  .catch((err) => {
+    console.error("Database initialization failed:", err);
+    process.exit(1);
+  });

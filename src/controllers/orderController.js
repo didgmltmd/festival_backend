@@ -1,10 +1,10 @@
-const { db, getMenuItems, getOrders, get, run, refreshOrderServed } = require("../db");
+const { getMenuItems, getOrders, get, run, refreshOrderServed, transaction } = require("../db");
 
 const kitchenZones = ["A", "B", "C"];
 const now = () => new Date().toISOString();
 
-const enrichItems = (items) => {
-  const menu = getMenuItems();
+const enrichItems = async (items) => {
+  const menu = await getMenuItems();
   let totalPrice = 0;
 
   const enriched = items.map((item) => {
@@ -29,7 +29,7 @@ const enrichItems = (items) => {
   return { items: enriched, totalPrice };
 };
 
-exports.createOrder = (req, res) => {
+exports.createOrder = async (req, res) => {
   const { tableNumber, items } = req.body;
 
   if (!tableNumber || !Array.isArray(items) || items.length === 0) {
@@ -37,7 +37,7 @@ exports.createOrder = (req, res) => {
   }
 
   try {
-    const enriched = enrichItems(items);
+    const enriched = await enrichItems(items);
     res.json({
       tableNumber,
       items: enriched.items,
@@ -50,7 +50,7 @@ exports.createOrder = (req, res) => {
   }
 };
 
-exports.saveOrder = (req, res) => {
+exports.saveOrder = async (req, res) => {
   const { tableNumber, items } = req.body;
 
   if (!tableNumber || !Array.isArray(items) || items.length === 0) {
@@ -59,7 +59,7 @@ exports.saveOrder = (req, res) => {
 
   let enriched;
   try {
-    enriched = enrichItems(items);
+    enriched = await enrichItems(items);
   } catch (err) {
     return res.status(400).json({ error: err.message });
   }
@@ -69,39 +69,42 @@ exports.saveOrder = (req, res) => {
   const paymentMethod = req.body.paymentMethod || "현장결제";
 
   try {
-    const insertOrder = db.prepare(`
-      INSERT INTO orders (timestamp, table_number, total_price, payment_method, paid_at, served)
-      VALUES (?, ?, ?, ?, ?, 0)
-    `);
-    const insertItem = db.prepare(`
-      INSERT INTO order_items (
-        order_timestamp, item_index, name, price, quantity, zone, total,
-        status, ordered_at, cooked_at, served_at, served
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `);
-
-    db.exec("BEGIN");
-    insertOrder.run(timestamp, String(tableNumber), enriched.totalPrice, paymentMethod, paidAt);
-
-    enriched.items.forEach((item, index) => {
-      const isCounter = item.zone === "COUNTER";
-      insertItem.run(
-        timestamp,
-        index,
-        item.name,
-        item.price,
-        item.quantity,
-        item.zone,
-        item.total,
-        isCounter ? "served" : "cooking",
-        timestamp,
-        isCounter ? timestamp : null,
-        isCounter ? timestamp : null,
-        isCounter ? 1 : 0
+    await transaction(async (client) => {
+      await client.query(
+        `
+          INSERT INTO orders (timestamp, table_number, total_price, payment_method, paid_at, served)
+          VALUES ($1, $2, $3, $4, $5, FALSE)
+        `,
+        [timestamp, String(tableNumber), enriched.totalPrice, paymentMethod, paidAt]
       );
+
+      for (const [index, item] of enriched.items.entries()) {
+        const isCounter = item.zone === "COUNTER";
+        await client.query(
+          `
+            INSERT INTO order_items (
+              order_timestamp, item_index, name, price, quantity, zone, total,
+              status, ordered_at, cooked_at, served_at, served
+            )
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+          `,
+          [
+            timestamp,
+            index,
+            item.name,
+            item.price,
+            item.quantity,
+            item.zone,
+            item.total,
+            isCounter ? "served" : "cooking",
+            timestamp,
+            isCounter ? timestamp : null,
+            isCounter ? timestamp : null,
+            isCounter,
+          ]
+        );
+      }
     });
-    db.exec("COMMIT");
 
     const zoneGroups = { A: [], B: [], C: [] };
     enriched.items.forEach((item, index) => {
@@ -122,21 +125,18 @@ exports.saveOrder = (req, res) => {
       if (zoneItems.length > 0) req.io.emit(`order:${zone}`, zoneItems);
     });
 
-    refreshOrderServed(timestamp);
+    await refreshOrderServed(timestamp);
     req.io.emit("orderCreated", { timestamp });
     res.status(201).json({ success: true, message: "주문이 저장되었습니다.", timestamp });
   } catch (err) {
-    try {
-      db.exec("ROLLBACK");
-    } catch {}
     console.error("Order save error:", err);
     res.status(500).json({ error: "주문 저장에 실패했습니다." });
   }
 };
 
-exports.getOrders = (req, res) => {
+exports.getOrders = async (req, res) => {
   res.json(
-    getOrders({
+    await getOrders({
       tableNumber: req.query.tableNumber,
       from: req.query.from,
       to: req.query.to,
@@ -144,41 +144,44 @@ exports.getOrders = (req, res) => {
   );
 };
 
-exports.markOrderAsServed = (req, res) => {
+exports.markOrderAsServed = async (req, res) => {
   const { timestamp } = req.params;
-  const order = get("SELECT timestamp FROM orders WHERE timestamp = ?", [timestamp]);
+  const order = await get("SELECT timestamp FROM orders WHERE timestamp = $1", [timestamp]);
 
   if (!order) return res.status(404).json({ error: "주문을 찾을 수 없습니다." });
 
   const servedAt = now();
-  run(
-    "UPDATE order_items SET status = 'served', served = 1, served_at = COALESCE(served_at, ?), cooked_at = COALESCE(cooked_at, ?) WHERE order_timestamp = ?",
+  await run(
+    "UPDATE order_items SET status = 'served', served = TRUE, served_at = COALESCE(served_at, $1), cooked_at = COALESCE(cooked_at, $2) WHERE order_timestamp = $3",
     [servedAt, servedAt, timestamp]
   );
-  run("UPDATE orders SET served = 1 WHERE timestamp = ?", [timestamp]);
+  await run("UPDATE orders SET served = TRUE WHERE timestamp = $1", [timestamp]);
 
   req.app.get("io").emit("orderServed", { zone: "ALL", timestamp });
   req.app.get("io").emit("orderUpdated", { timestamp });
   res.json({ success: true, message: "전체 서빙 완료" });
 };
 
-exports.markItemAsServed = (req, res) => {
+exports.markItemAsServed = async (req, res) => {
   const { timestamp, itemIndex } = req.params;
   const index = Number(itemIndex);
-  const item = get("SELECT * FROM order_items WHERE order_timestamp = ? AND item_index = ?", [timestamp, index]);
+  const item = await get("SELECT * FROM order_items WHERE order_timestamp = $1 AND item_index = $2", [
+    timestamp,
+    index,
+  ]);
 
   if (!item) return res.status(404).json({ error: "주문 항목을 찾을 수 없습니다." });
 
   const servedAt = now();
-  run(
-    "UPDATE order_items SET status = 'served', served = 1, served_at = ?, cooked_at = COALESCE(cooked_at, ?) WHERE order_timestamp = ? AND item_index = ?",
+  await run(
+    "UPDATE order_items SET status = 'served', served = TRUE, served_at = $1, cooked_at = COALESCE(cooked_at, $2) WHERE order_timestamp = $3 AND item_index = $4",
     [servedAt, servedAt, timestamp, index]
   );
-  const completedItem = get("SELECT cooked_at, served_at FROM order_items WHERE order_timestamp = ? AND item_index = ?", [
-    timestamp,
-    index,
-  ]);
-  refreshOrderServed(timestamp);
+  const completedItem = await get(
+    "SELECT cooked_at, served_at FROM order_items WHERE order_timestamp = $1 AND item_index = $2",
+    [timestamp, index]
+  );
+  await refreshOrderServed(timestamp);
 
   req.app.get("io").emit("orderServed", {
     zone: item.zone,
@@ -192,14 +195,14 @@ exports.markItemAsServed = (req, res) => {
   res.json({ success: true, message: "서빙 완료 처리됨" });
 };
 
-exports.deleteOrder = (req, res) => {
+exports.deleteOrder = async (req, res) => {
   const { timestamp } = req.params;
-  const order = get("SELECT timestamp FROM orders WHERE timestamp = ?", [timestamp]);
+  const order = await get("SELECT timestamp FROM orders WHERE timestamp = $1", [timestamp]);
 
   if (!order) return res.status(404).json({ error: "주문을 찾을 수 없습니다." });
 
-  const items = getOrders().find((entry) => entry.timestamp === timestamp)?.items || [];
-  run("DELETE FROM orders WHERE timestamp = ?", [timestamp]);
+  const items = (await getOrders()).find((entry) => entry.timestamp === timestamp)?.items || [];
+  await run("DELETE FROM orders WHERE timestamp = $1", [timestamp]);
 
   req.app.get("io").emit("orderDeleted", {
     timestamp,
